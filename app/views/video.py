@@ -3,6 +3,10 @@ from flask_restful import Resource
 from yt_dlp import YoutubeDL
 import os
 import whisper
+import openai
+
+openai.api_key = os.environ.get('OPENAI_KEY')
+model = "text-ada-001"
 
 
 def audio_to_script(path):
@@ -14,24 +18,6 @@ def audio_to_script(path):
     return (result["text"])
 
 class ManageScript(Resource):
-
-    # def post(self):
-    #     account = Account(
-    #         account_id = request.json['account_id'],
-    #         status = request.json['status'],
-    #         balance = request.json['balance']
-    #     )
-    #     db.session.add(account)
-    #     db.session.commit()
-
-    #     output = {
-    #         'message': 'Account Created',
-    #         'resource_id': account.account_id,
-    #         'status': 200
-    #     }
-
-    #     return output
-
 
     def get(self):
 
@@ -54,3 +40,69 @@ class ManageScript(Resource):
             'context': script,
             'status_code': 200
             }
+    
+
+class ChatGPT(Resource):
+
+    def post(self):
+        # Get the message from the POST request
+        context = f'You are answering questions regarding a video who\'s transcript'\
+                  f'is as follows: {request.json.get("context")}'
+        
+        messages =[{"role": "system", "content": context}]
+        # Send the message to OpenAI's API and receive the response
+
+        user_message = {"role": "user", "content": request.json.get("question")}
+        messages.append(user_message)
+        
+        completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+        max_tokens=140
+        )
+        if completion.choices[0].message!=None:
+            return completion.choices[0].message
+
+        else :
+            return 'Failed to Generate response!'
+    
+class Summary(Resource):
+
+    def get(self):
+
+        context = f'Summarize a video who\'s transcript'\
+                  f'is as following: {request.json.get("context")}'
+        
+        messages =[{"role": "system", "content": context}]
+
+        completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+        max_tokens=140
+        )
+
+        if completion.choices[0].message!=None:
+            return completion.choices[0].message
+
+        else :
+            return 'Failed to Generate response!'
+        
+
+class Quiz(Resource):
+
+    def get(self):
+
+        context = f'Generate three multiple choice question using the following'\
+                  f'context: {request.json.get("context")}'
+        
+        messages =[{"role": "system", "content": context}]
+        
+        completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages
+        )
+        if completion.choices[0].message!=None:
+            return completion.choices[0].message
+
+        else :
+            return 'Failed to Generate response!'
