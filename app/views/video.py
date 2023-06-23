@@ -1,6 +1,7 @@
 from flask import request
 from flask_restful import Resource
 from yt_dlp import YoutubeDL
+from flask_restful.utils import cors
 import os
 import whisper
 import openai
@@ -19,7 +20,9 @@ def audio_to_script(path):
 
 class ManageScript(Resource):
 
-    def get(self):
+    @cors.crossdomain(methods={"HEAD", "OPTIONS", "POST"},
+                      origin='*')
+    def post(self):
 
         video_url = request.json['url']
         video_info = YoutubeDL().extract_info(url = video_url,download=False)
@@ -68,7 +71,7 @@ class ChatGPT(Resource):
     
 class Summary(Resource):
 
-    def get(self):
+    def post(self):
 
         context = f'Summarize a video who\'s transcript'\
                   f'is as following: {request.json.get("context")}'
@@ -78,7 +81,7 @@ class Summary(Resource):
         completion = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=messages,
-        max_tokens=140
+        max_tokens=200
         )
 
         if completion.choices[0].message!=None:
@@ -90,7 +93,7 @@ class Summary(Resource):
 
 class Quiz(Resource):
 
-    def get(self):
+    def post(self):
 
         context = f'Generate three multiple choice question using the following'\
                   f'context: {request.json.get("context")}'
